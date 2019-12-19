@@ -42,6 +42,26 @@ sudo apt-get install clamtk -y
 # Lock Out Root User
 sudo passwd -l root
 
+# Set Audit Policy
+git clone https://github.com/CISOFy/lynis
+
+sudo chown -R root:root lynis
+sudo chmod a+rx lynis
+cd lynis || exit 1
+
+LANG=C sudo ./lynis audit system
+sudo cp '/var/log/lynis-report.dat' ~/
+sudo chown vagrant:vagrant ~/lynis-report.dat
+PRIFILE="$(mktemp)"
+echo "$PRIFILE"
+for x in $(lsblk  -n | awk '{print $NF}' | grep -E -v '[SWAP]|disk|part' | sort | uniq); do
+  for f in $(sudo find "$x" -xdev -type f -perm -4000 -o -type f -perm -2000 2>/dev/null); do
+    if sudo stat -c %A "$f" | grep 'x' 2>/dev/null 1>&2; then
+       echo "-a always,exit -F path=$f -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged" >> "$PRIFILE"
+    fi
+  done
+done
+
 # Disable Guest Account
 echo "allow-guest=false" >> /etc/lightdm/lightdm.conf
 
@@ -122,7 +142,9 @@ sudo apt-get purge vuze
 sudo apt-get purge irssi
 sudo apt-get purge talk 
 sudo apt-get purge telnet
-	#Remove pentesting
+
+sudo apt-get --purge remove xinetd nis yp-tools tftpd atftpd tftpd-hpa telnetd rsh-server rsh-redone-server
+#Remove pentesting
 sudo apt-get purge wireshark 
 sudo apt-get purge nmap 
 sudo apt-get purge john 
@@ -140,6 +162,8 @@ for suffix in mp3 txt wav wma aac mp4 mov avi gif jpg png bmp img exe msi bat sh
 do
   sudo find /home -name *.$suffix
 done
+# Find World-Writable Files
+find /dir -xdev -type d \( -perm -0002 -a ! -perm -1000 \) -print
 
 # Make backups of critical files
 mkdir /BackUps
@@ -162,8 +186,6 @@ for x in `ls /home`
 do
 	cp -r /home/$x /BackUps
 done
-
-#Set Automatic Updates
 
 ##Set daily updates
 		sed -i -e 's/APT::Periodic::Update-Package-Lists.*\+/APT::Periodic::Update-Package-Lists "1";/' /etc/apt/apt.conf.d/10periodic
