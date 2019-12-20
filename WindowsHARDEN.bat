@@ -1,19 +1,3 @@
-Skip to content
- 
-Search…
-All gists
-Back to GitHub
-@Ne-el 
-@jaredhaight jaredhaight/windows_hardening.cmd
-forked from mackwage/windows_hardening.cmd
-Last active 3 days ago • Report abuse
-38
-12
- Code Revisions 10 Stars 38 Forks 12
-<script src="https://gist.github.com/jaredhaight/e88b4323adce06395dace501841d3075.js"></script>
-  
-Script to perform some hardening of Windows OS.
- windows_hardening.cmd
 ::
 ::#######################################################################
 ::
