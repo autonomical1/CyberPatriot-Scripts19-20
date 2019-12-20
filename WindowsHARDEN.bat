@@ -123,3 +123,9 @@ netsh advfirewall set currentprofile logging droppedconnections enable
 netsh advfirewall set publicprofile firewallpolicy blockinboundalways,allowoutbound
 :: Enable Windows Defender Network Protection
 powershell.exe Set-MpPreference -EnableNetworkProtection Enabled
+sc config RemoteRegistry start=disabled
+sc config RetailDemo start=disabled
+sc config WinRM start=disabled
+sc config WMPNetworkSvc start=disabled
+sc delete DiagTrack
+sc delete dmwappushservice
