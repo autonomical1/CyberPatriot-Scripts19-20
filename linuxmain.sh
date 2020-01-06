@@ -1,10 +1,14 @@
 #/bin/bash
 # Check if script is run with root
 if [[ $EUID -ne 0 ]]
-then
-  echo "Please run again as root using 'sudo ./linuxmain.sh'"
-  exit 1
+	then
+	echo "Please run again as root using 'sudo ./linuxmain.sh'"
+	exit 1
 fi
+# Manually edit files
+cat /etc/group | grep sudo
+pause
+cat /etc/apt/sources.list
 # Install rootkits, anti-malware, etc..
 sudo apt-get install chkrootkit 
 sudo apt-get install ufw 
@@ -20,55 +24,59 @@ clear
 # Use those rootkits, anti-malware, etc...
 sudo chkrootkit
 sudo freshclam
-sudo clamscan -r /
+sudo clamscan -r --bell -i /home/
+sudo rkhunter --update
+rkhunter --propupd
+rkhunter -c --enable all --disable none
+chkrootkit -q
+echo "Visit http://www.chkrootkit.org/README for more"
+pause
+# Run Lynis AV for audit config
+wget https://downloads.cisofy.com/lynis/lynis-2.6.9.tar.gz -O lynis.tar.gz
+sudo tar -xzf ./lynis.tar.gz --directory /usr/share/
+cd /usr/share/lynis
+/usr/share/lynis/lynis update info
+/usr/share/lynis/lynis audit system
 # Firewall
 sudo ufw enable
+sudo ufw default allow outgoing
+sudo ufw default deny incoming
+ufw logging on
+ufw app pause
+list
+echo "Logs will be available at '/var/logs/ufw'"
+ufw allow 22
+ufw allow 80
+ufw allow 443
 ufw deny 23
 ufw deny 2049
 ufw deny 515
 ufw deny 111
 ufw deny 7100
+ufw status
+pause
+#Disable Remote Desktop
+gconftool-2 -s -t bool /desktop/gnome/remote_access/enabled false
 # Updates
+sudo add-apt-repository -y ppa:libreoffice/ppa
 sudo apt-get -y upgrade
 sudo apt-get -y update
-sudo add-apt-repository -y ppa:libreoffice/ppa
 sudo apt-get update -y
 sudo apt-get upgrade -y
 sudo apt-get dist-upgrade -y
 killall firefox
 sudo apt-get --purge --reinstall install firefox -y
 sudo apt-get install clamtk -y
-
 # Lock Out Root User
 sudo passwd -l root
-
-# Set Audit Policy
-git clone https://github.com/CISOFy/lynis
-
-sudo chown -R root:root lynis
-sudo chmod a+rx lynis
-cd lynis || exit 1
-
-LANG=C sudo ./lynis audit system
-sudo cp '/var/log/lynis-report.dat' ~/
-sudo chown vagrant:vagrant ~/lynis-report.dat
-PRIFILE="$(mktemp)"
-echo "$PRIFILE"
-for x in $(lsblk  -n | awk '{print $NF}' | grep -E -v '[SWAP]|disk|part' | sort | uniq); do
-  for f in $(sudo find "$x" -xdev -type f -perm -4000 -o -type f -perm -2000 2>/dev/null); do
-    if sudo stat -c %A "$f" | grep 'x' 2>/dev/null 1>&2; then
-       echo "-a always,exit -F path=$f -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged" >> "$PRIFILE"
-    fi
-  done
-done
 
 # Disable Guest Account
 echo "allow-guest=false" >> /etc/lightdm/lightdm.conf
 
 # Password Policy Configuration
 sudo sed -i '/^PASS_MAX_DAYS/ c\PASS_MAX_DAYS   90' /etc/login.defs
-sudo sed -i '/^PASS_MIN_DAYS/ c\PASS_MIN_DAYS   10'  /etc/login.defs
-sudo sed -i '/^PASS_WARN_AGE/ c\PASS_WARN_AGE   7' /etc/login.defs
+sudo sed -i '/^PASS_MIN_DAYS/ c\PASS_MIN_DAYS   7'  /etc/login.defs
+sudo sed -i '/^PASS_WARN_AGE/ c\PASS_WARN_AGE   14' /etc/login.defs
 
 # Force Strong Passwords
 sudo apt-get -y install libpam-cracklib
@@ -80,7 +88,7 @@ read option
 if [[ $option =~ ^[Yy]$ ]]
 then
   sudo apt-get -y install mysql-server
-  # Disable remote access
+# Disable remote access
   sudo sed -i '/bind-address/ c\bind-address = 127.0.0.1' /etc/mysql/my.cnf
   sudo service mysql restart
 else
@@ -142,9 +150,7 @@ sudo apt-get purge vuze
 sudo apt-get purge irssi
 sudo apt-get purge talk 
 sudo apt-get purge telnet
-
-sudo apt-get --purge remove xinetd nis yp-tools tftpd atftpd tftpd-hpa telnetd rsh-server rsh-redone-server
-#Remove pentesting
+	#Remove pentesting
 sudo apt-get purge wireshark 
 sudo apt-get purge nmap 
 sudo apt-get purge john 
@@ -162,30 +168,28 @@ for suffix in mp3 txt wav wma aac mp4 mov avi gif jpg png bmp img exe msi bat sh
 do
   sudo find /home -name *.$suffix
 done
-# Find World-Writable Files
-find /dir -xdev -type d \( -perm -0002 -a ! -perm -1000 \) -print
 
 # Make backups of critical files
-mkdir /BackUps
-##Backups the sudoers file
-sudo cp /etc/sudoers /Backups
-##Backups the home directory
-cp /etc/passwd /BackUps
-##Backups the log files
-cp -r /var/log /BackUps
-##Backups the passwd file
-cp /etc/passwd /BackUps
-##Backups the group file
-cp /etc/group /BackUps
-##Back ups the shadow file
-cp /etc/shadow /BackUps
-##Backing up the /var/spool/mail
-cp /var/spool/mail /Backups
-##backups all the home directories
-for x in `ls /home`
-do
-	cp -r /home/$x /BackUps
-done
+	mkdir /BackUps
+	##Backups the sudoers file
+	sudo cp /etc/sudoers /Backups
+	##Backups the home directory
+	cp /etc/passwd /BackUps
+	##Backups the log files
+	cp -r /var/log /BackUps
+	##Backups the passwd file
+	cp /etc/passwd /BackUps
+	##Backups the group file
+	cp /etc/group /BackUps
+	##Back ups the shadow file
+	cp /etc/shadow /BackUps
+	##Backing up the /var/spool/mail
+	cp /var/spool/mail /Backups
+	##backups all the home directories
+	for x in `ls /home`
+	do
+		cp -r /home/$x /BackUps
+	done
 
 ##Set daily updates
 		sed -i -e 's/APT::Periodic::Update-Package-Lists.*\+/APT::Periodic::Update-Package-Lists "1";/' /etc/apt/apt.conf.d/10periodic
@@ -233,4 +237,5 @@ sysctl -w net.ipv6.conf.default.accept_redirects=0
 echo "*Resetting bash history*"
 sudo rm ~/.bash_history 
 
-
+#To run manually
+echo "Please run this command: 'sudo sed -i '1 s/^/auth optional pam_tally.so deny=5 unlock_time=900 onerr=fail audit even_deny_root_account silent\n/' /etc/pam.d/common-auth'"
